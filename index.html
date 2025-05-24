@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Интерактивное SPA: Концепция Jobs to Be Done</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Visualization & Content Choices:
+        - Principles: HTML list + JS show/hide for details. Goal: Inform. Justification: Easy drill-down.
+        - Case Studies: HTML tabs/cards + JS. Goal: Compare, Inform. Justification: Concise overview of multiple examples.
+        - Forces of Progress: HTML/CSS diagram + JS click-to-reveal. Goal: Organize, Inform. Justification: Visual and interactive explanation of a key model.
+        - Job Story Format: HTML display. Goal: Inform. Justification: Clear presentation of the structure.
+        - Gemini Job Story Generator: Textarea input + Button + JS + Gemini API. Goal: Engage, Apply. Justification: Interactive tool to practice JTBD concept.
+        - Mistakes: HTML/CSS flip cards + JS. Goal: Inform. Justification: Engaging way to learn common errors.
+        - CONFIRMATION: No traditional Chart.js/Plotly charts used as report is primarily qualitative. Focus on interactive HTML elements and AI integration. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .active-nav {
+            border-bottom-width: 2px;
+            border-color: #3b82f6; /* Tailwind blue-500 */
+            color: #3b82f6;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .force-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+        .force-circle:hover {
+            transform: scale(1.05);
+        }
+        .details-box {
+            min-height: 100px;
+        }
+        .flip-card {
+            perspective: 1000px;
+            cursor: pointer;
+        }
+        .flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .flip-card.flipped .flip-card-inner {
+            transform: rotateY(180deg);
+        }
+        .flip-card-front, .flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+            border-radius: 0.5rem;
+        }
+        .flip-card-back {
+            transform: rotateY(180deg);
+        }
+        .tab-button.active {
+            background-color: #3b82f6; 
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        /* Custom modal styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 100; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto; /* 15% from the top and centered */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%; /* Could be more or less, depending on screen size */
+            max-width: 500px;
+            border-radius: 0.5rem;
+            text-align: center;
+        }
+        .modal-close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .modal-close-button:hover,
+        .modal-close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-stone-100 text-stone-800">
+
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <ul class="flex flex-wrap justify-center sm:justify-start space-x-4 sm:space-x-6 py-3 text-sm sm:text-base">
+                <li><button data-target="intro" class="nav-link font-medium text-stone-600 hover:text-blue-500 py-2">Введение</button></li>
+                <li><button data-target="core-concepts" class="nav-link font-medium text-stone-600 hover:text-blue-500 py-2">Ключевые Концепции</button></li>
+                <li><button data-target="origins" class="nav-link font-medium text-stone-600 hover:text-blue-500 py-2">Происхождение</button></li>
+                <li><button data-target="jtbd-in-action" class="nav-link font-medium text-stone-600 hover:text-blue-500 py-2">JTBD в Действии</button></li>
+                <li><button data-target="putting-jtbd-to-work" class="nav-link font-medium text-stone-600 hover:text-blue-500 py-2">Применение JTBD</button></li>
+                <li><button data-target="avoiding-pitfalls" class="nav-link font-medium text-stone-600 hover:text-blue-500 py-2">Ошибки</button></li>
+                <li><button data-target="conclusion" class="nav-link font-medium text-stone-600 hover:text-blue-500 py-2">Заключение</button></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+        
+        <section id="intro" class="content-section space-y-6 bg-white p-6 rounded-lg shadow">
+            <h1 class="text-3xl sm:text-4xl font-bold text-sky-700 mb-4">Концепция Jobs to Be Done (JTBD)</h1>
+            <p class="text-lg text-stone-700">Это приложение поможет вам погрузиться в концепцию Jobs to Be Done. JTBD – это мощный фреймворк, который смещает фокус с продукта на задачу ("работу"), которую клиент пытается выполнить. Понимание этой фундаментальной задачи позволяет компаниям создавать решения, которые действительно нужны клиентам.</p>
+            <p class="text-stone-600">Используйте навигацию выше, чтобы исследовать различные аспекты JTBD, от ее основных принципов и истории до практических примеров и советов по внедрению, включая интерактивный генератор Job Story с помощью ИИ.</p>
+        </section>
+
+        <section id="core-concepts" class="content-section space-y-6 bg-white p-6 rounded-lg shadow">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-sky-600 mb-4">Ключевые Концепции и Принципы JTBD</h2>
+            <p class="text-stone-700 mb-6">JTBD утверждает, что люди "нанимают" продукты или услуги для выполнения определенной "работы" – прогресса, которого они стремятся достичь. Ниже представлены основные принципы этой концепции. Нажмите на каждый принцип, чтобы узнать больше.</p>
+            <ul class="space-y-3">
+                <li>
+                    <button class="principle-toggle w-full text-left p-3 bg-sky-100 hover:bg-sky-200 rounded-md font-medium text-sky-700 transition">1. Люди хотят улучшить свою жизнь</button>
+                    <div class="principle-detail hidden p-3 mt-1 bg-stone-50 rounded-md text-stone-600">В основе любого "найма" продукта лежит стремление к прогрессу, к переходу из текущего состояния в желаемое.</div>
+                </li>
+                <li>
+                    <button class="principle-toggle w-full text-left p-3 bg-sky-100 hover:bg-sky-200 rounded-md font-medium text-sky-700 transition">2. "Работа" – это не задача или действие, а прогресс</button>
+                    <div class="principle-detail hidden p-3 mt-1 bg-stone-50 rounded-md text-stone-600">Это не просто "повесить картину" (задача), а "сделать гостиную более уютной и отражающей мою индивидуальность" (работа).</div>
+                </li>
+                <li>
+                    <button class="principle-toggle w-full text-left p-3 bg-sky-100 hover:bg-sky-200 rounded-md font-medium text-sky-700 transition">3. Контекст имеет решающее значение</button>
+                    <div class="principle-detail hidden p-3 mt-1 bg-stone-50 rounded-md text-stone-600">"Работа" всегда возникает в определенном контексте или ситуации. Один и тот же человек может "нанимать" разные продукты для одной и той же базовой потребности в разных обстоятельствах.</div>
+                </li>
+                <li>
+                    <button class="principle-toggle w-full text-left p-3 bg-sky-100 hover:bg-sky-200 rounded-md font-medium text-sky-700 transition">4. "Работа" имеет функциональные, эмоциональные и социальные аспекты</button>
+                    <div class="principle-detail hidden p-3 mt-1 bg-stone-50 rounded-md text-stone-600">
+                        <ul class="list-disc list-inside ml-4 space-y-1">
+                            <li><strong>Функциональные:</strong> практические требования (быстро добраться из А в Б).</li>
+                            <li><strong>Эмоциональные:</strong> как клиент хочет себя чувствовать (уверенно, продуктивно).</li>
+                            <li><strong>Социальные:</strong> как клиент хочет выглядеть в глазах других (успешным, современным).</li>
+                        </ul>
+                    </div>
+                </li>
+                 <li>
+                    <button class="principle-toggle w-full text-left p-3 bg-sky-100 hover:bg-sky-200 rounded-md font-medium text-sky-700 transition">5. "Работа" стабильна во времени, решения меняются</button>
+                    <div class="principle-detail hidden p-3 mt-1 bg-stone-50 rounded-md text-stone-600">Потребность в общении на расстоянии существовала всегда, но решения эволюционировали от гонцов до смартфонов.</div>
+                </li>
+                <li>
+                    <button class="principle-toggle w-full text-left p-3 bg-sky-100 hover:bg-sky-200 rounded-md font-medium text-sky-700 transition">6. Люди ищут решения, а не продукты</button>
+                    <div class="principle-detail hidden p-3 mt-1 bg-stone-50 rounded-md text-stone-600">Им все равно, как называется продукт, если он помогает выполнить их "работу" лучше других.</div>
+                </li>
+                <li>
+                    <button class="principle-toggle w-full text-left p-3 bg-sky-100 hover:bg-sky-200 rounded-md font-medium text-sky-700 transition">7. Конкуренция шире, чем кажется</button>
+                    <div class="principle-detail hidden p-3 mt-1 bg-stone-50 rounded-md text-stone-600">Конкурентами являются не только прямые аналоги, но и любые другие способы выполнения "работы".</div>
+                </li>
+            </ul>
+        </section>
+
+        <section id="origins" class="content-section space-y-6 bg-white p-6 rounded-lg shadow">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-sky-600 mb-4">Происхождение Концепции</h2>
+            <p class="text-stone-700 mb-6">Формализация JTBD связана с несколькими ключевыми фигурами, которые внесли значительный вклад в ее развитие и популяризацию.</p>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="bg-stone-50 p-4 rounded-lg shadow-sm">
+                    <h3 class="font-semibold text-xl text-sky-700 mb-2">Теодор Левитт</h3>
+                    <p class="text-sm text-stone-600">Профессор Гарвардской школы бизнеса, в 1960-х годах сказал: "Люди не хотят покупать четвертьдюймовое сверло. Они хотят четвертьдюймовое отверстие." Это одна из ранних формулировок идеи JTBD.</p>
+                </div>
+                <div class="bg-stone-50 p-4 rounded-lg shadow-sm">
+                    <h3 class="font-semibold text-xl text-sky-700 mb-2">Клейтон Кристенсен</h3>
+                    <p class="text-sm text-stone-600">Профессор Гарвардской школы бизнеса, популяризировал JTBD, используя ее для объяснения подрывных инноваций. Автор знаменитого примера с молочными коктейлями McDonald's. Цитата: "Мы нанимаем продукты, чтобы они выполняли для нас определенную работу."</p>
+                </div>
+                <div class="bg-stone-50 p-4 rounded-lg shadow-sm">
+                    <h3 class="font-semibold text-xl text-sky-700 mb-2">Тони Ульвик</h3>
+                    <p class="text-sm text-stone-600">Основатель Strategyn, создатель методологии Outcome-Driven Innovation (ODI). Сосредоточился на "желаемых результатах" (desired outcomes) – метриках оценки успешности выполнения "работы".</p>
+                </div>
+            </div>
+             <p class="text-stone-600 mt-4 text-sm">Другие важные контрибьюторы: Алан Клемент, Боб Моэста и Крис Спик.</p>
+        </section>
+
+        <section id="jtbd-in-action" class="content-section space-y-6 bg-white p-6 rounded-lg shadow">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-sky-600 mb-4">JTBD в Действии: Реальные Примеры</h2>
+            <p class="text-stone-700 mb-6">Многие компании успешно применяли принципы JTBD. Изучите несколько примеров, переключаясь между вкладками.</p>
+            <div class="mb-4 border-b border-stone-200">
+                <nav class="-mb-px flex space-x-4 sm:space-x-8" aria-label="Tabs">
+                    <button class="tab-button whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300 active" data-tab="mcdonalds">McDonald's</button>
+                    <button class="tab-button whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300" data-tab="intercom">Intercom</button>
+                    <button class="tab-button whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300" data-tab="basecamp">Basecamp</button>
+                    <button class="tab-button whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300" data-tab="ikea">IKEA</button>
+                    <button class="tab-button whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300" data-tab="microsoft">Microsoft</button>
+                </nav>
+            </div>
+
+            <div id="mcdonalds" class="tab-content active space-y-3">
+                <h3 class="font-semibold text-xl text-sky-700">McDonald's и молочные коктейли</h3>
+                <p><strong class="text-stone-600">Задача:</strong> Увеличить продажи молочных коктейлей.</p>
+                <p><strong class="text-stone-600">JTBD-исследование:</strong> Выяснили, что утром коктейли покупают водители для долгой поездки.</p>
+                <p><strong class="text-stone-600">"Работа":</strong> "Помочь скоротать время в поездке, дать что-то, что можно пить одной рукой, не испачкавшись, и утолить голод."</p>
+                <p><strong class="text-stone-600">Решение:</strong> Сделали коктейли гуще, добавили фрукты, организовали экспресс-выдачу.</p>
+                <p><strong class="text-stone-600">Цель:</strong> Увеличить продажи, лучше удовлетворить потребности сегмента.</p>
+            </div>
+            <div id="intercom" class="tab-content space-y-3">
+                <h3 class="font-semibold text-xl text-sky-700">Intercom</h3>
+                <p><strong class="text-stone-600">Задача:</strong> Помочь онлайн-бизнесам выстраивать личные отношения с клиентами.</p>
+                <p><strong class="text-stone-600">JTBD-подход:</strong> Фокус на "работах": "привлечь посетителя", "провести онбординг", "оказать поддержку".</p>
+                <p><strong class="text-stone-600">Решение:</strong> Набор интегрированных инструментов (чат, email, база знаний) для конкретных "работ".</p>
+                <p><strong class="text-stone-600">Цель:</strong> Создать интуитивно понятный продукт, решающий реальные проблемы бизнеса.</p>
+            </div>
+            <div id="basecamp" class="tab-content space-y-3">
+                <h3 class="font-semibold text-xl text-sky-700">Basecamp</h3>
+                <p><strong class="text-stone-600">Задача:</strong> Помочь командам эффективно управлять проектами.</p>
+                <p><strong class="text-stone-600">"Работа":</strong> "Организовать совместную работу над проектом прозрачно и без хаоса."</p>
+                <p><strong class="text-stone-600">Решение:</strong> Простой интерфейс с ключевыми функциями: задачи, обсуждения, файлы, календарь.</p>
+                <p><strong class="text-stone-600">Цель:</strong> Предоставить инструмент, который помогает работать лучше, а не создает нагрузку.</p>
+            </div>
+            <div id="ikea" class="tab-content space-y-3">
+                <h3 class="font-semibold text-xl text-sky-700">IKEA</h3>
+                <p><strong class="text-stone-600">Задача:</strong> Предложить доступную и стильную мебель.</p>
+                <p><strong class="text-stone-600">"Работа":</strong> "Быстро и недорого обставить квартиру функциональной мебелью, создав уют."</p>
+                <p><strong class="text-stone-600">Решение:</strong> Мебель в разобранном виде, продуманный дизайн, инструкции, сопутствующие товары.</p>
+                <p><strong class="text-stone-600">Цель:</strong> Демократизировать дизайн и сделать обустройство дома доступным.</p>
+            </div>
+            <div id="microsoft" class="tab-content space-y-3">
+                <h3 class="font-semibold text-xl text-sky-700">Microsoft (Excel)</h3>
+                <p><strong class="text-stone-600">Задача:</strong> Предоставить инструмент для работы с данными.</p>
+                <p><strong class="text-stone-600">"Работы":</strong> "Проанализировать данные", "создать бюджет", "управлять задачами", "визуализировать данные".</p>
+                <p><strong class="text-stone-600">Решение:</strong> Гибкость Excel: формулы, сводные таблицы, диаграммы, макросы.</p>
+                <p><strong class="text-stone-600">Цель:</strong> Создать универсальный инструмент для различных задач по обработке информации.</p>
+            </div>
+        </section>
+
+        <section id="putting-jtbd-to-work" class="content-section space-y-8 bg-white p-6 rounded-lg shadow">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-sky-600 mb-4">Применение JTBD на Практике</h2>
+            <p class="text-stone-700 mb-6">Узнайте, как менеджеры продуктов и исследователи внедряют JTBD в своей работе, от проведения интервью до формирования Job Stories и использования ИИ для их генерации.</p>
+
+            <div>
+                <h3 class="text-xl font-semibold text-sky-700 mb-3">1. Проведение интервью по JTBD</h3>
+                <p class="text-stone-600 mb-4">JTBD-интервью фокусируются на прошлом опыте клиента, чтобы понять контекст и силы, приведшие к "найму" решения. Ключевой инструмент – "Силы прогресса". Нажмите на каждую силу, чтобы увидеть ее описание.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                    <div class="relative p-6 rounded-lg bg-stone-50 shadow-inner min-h-[300px] md:min-h-[350px] flex flex-col justify-center">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div data-force="push" class="force-circle bg-red-200 text-red-700 p-2 text-sm font-medium">Недовольство текущей ситуацией (Push)</div>
+                            <div data-force="pull" class="force-circle bg-green-200 text-green-700 p-2 text-sm font-medium">Привлекательность нового решения (Pull)</div>
+                            <div data-force="anxiety" class="force-circle bg-yellow-200 text-yellow-700 p-2 text-sm font-medium">Тревоги и опасения (Anxiety)</div>
+                            <div data-force="habit" class="force-circle bg-gray-200 text-gray-700 p-2 text-sm font-medium">Привычки и инерция (Habit)</div>
+                        </div>
+                         <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div class="w-16 h-16 bg-sky-500 text-white rounded-full flex items-center justify-center text-center text-xs font-bold shadow-lg">Клиент</div>
+                        </div>
+                    </div>
+                    <div id="force-details" class="details-box bg-sky-50 p-4 rounded-lg text-sky-700">
+                        <p>Нажмите на одну из сил, чтобы увидеть подробности.</p>
+                    </div>
+                </div>
+                <div class="mt-6">
+                    <h4 class="font-semibold text-lg text-stone-700 mb-2">Временная шкала (Timeline) в интервью:</h4>
+                    <ul class="list-disc list-inside text-stone-600 space-y-1 text-sm">
+                        <li><strong>Первая мысль:</strong> Когда впервые возникла мысль о необходимости изменений?</li>
+                        <li><strong>Пассивный поиск:</strong> Начало присматриваться к решениям, но не активно.</li>
+                        <li><strong>Активный поиск:</strong> События, подтолкнувшие к активным действиям.</li>
+                        <li><strong>Решение:</strong> Рассмотрение вариантов, сравнение, решающий фактор.</li>
+                        <li><strong>Опыт использования:</strong> Оправдались ли ожидания?</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-xl font-semibold text-sky-700 mb-3">2. Формирование Job Stories</h3>
+                <p class="text-stone-600 mb-2">Job Stories описывают потребности пользователя, фокусируясь на контексте, мотивации и желаемом результате.</p>
+                <div class="bg-sky-50 p-4 rounded-md text-sky-800">
+                    <p class="font-mono text-sm sm:text-base"><strong>Формат:</strong> Когда <code>[ситуация/контекст]</code>, я хочу <code>[мотивация/цель]</code>, чтобы я мог <code>[желаемый результат/прогресс]</code>.</p>
+                </div>
+                <h4 class="font-semibold text-lg text-stone-700 mt-4 mb-2">Примеры Job Stories:</h4>
+                <ul class="list-disc list-inside text-stone-600 space-y-1 text-sm">
+                    <li><strong>Для музыкального сервиса:</strong> "Когда я еду на работу в переполненном метро, я хочу погрузиться в свой мир с помощью музыки, чтобы я мог расслабиться и отвлечься от суеты."</li>
+                    <li><strong>Для приложения по управлению задачами:</strong> "Когда у меня много мелких задач из разных проектов, я хочу быстро увидеть все самое важное в одном месте, чтобы я мог эффективно спланировать свой день и ничего не упустить."</li>
+                </ul>
+            </div>
+
+            <div>
+                <h3 class="text-xl font-semibold text-sky-700 mb-3">3. Использование результатов</h3>
+                <p class="text-stone-600">Понимание JTBD влияет на:</p>
+                <ul class="list-disc list-inside text-stone-600 space-y-1 text-sm">
+                    <li><strong>Roadmap:</strong> Построение вокруг ключевых "работ" или этапов "путешествия клиента".</li>
+                    <li><strong>Приоритизация:</strong> Оценка идей по тому, насколько они помогают выполнить "работу".</li>
+                    <li><strong>Дизайн:</strong> Учет контекста, эмоциональных и социальных аспектов "работы".</li>
+                    <li><strong>Маркетинг:</strong> Коммуникации вокруг прогресса, который предлагает продукт.</li>
+                </ul>
+            </div>
+
+            <div class="pt-6 border-t border-stone-200">
+                <h3 class="text-xl font-semibold text-sky-700 mb-3">✨ Интерактивный Генератор Job Story с Gemini</h3>
+                <p class="text-stone-600 mb-4">Опишите ситуацию или контекст, в котором возникает потребность у пользователя. Наш ИИ-помощник на базе Gemini API поможет вам сформулировать подходящую Job Story.</p>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label for="jobStoryContextInput" class="block text-sm font-medium text-stone-700 mb-1">Опишите ситуацию/контекст пользователя:</label>
+                        <textarea id="jobStoryContextInput" rows="3" class="w-full p-2 border border-stone-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500" placeholder="Например: Пользователь устал после долгого рабочего дня и хочет расслабиться дома..."></textarea>
+                    </div>
+                    <button id="generateJobStoryButton" class="px-4 py-2 bg-sky-600 text-white font-semibold rounded-md hover:bg-sky-700 transition duration-150 ease-in-out flex items-center">
+                        <span class="mr-2">✨</span> Сгенерировать Job Story
+                    </button>
+                    <p id="jobStoryLoading" class="text-sky-600 hidden mt-2">✨ Генерация Job Story...</p>
+                    <div id="jobStoryOutputContainer" class="hidden mt-4">
+                        <h4 class="font-semibold text-lg text-stone-700 mb-2">Предложенная Job Story:</h4>
+                        <div id="jobStoryOutput" class="p-4 bg-sky-50 rounded-md text-sky-800 border border-sky-200">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <section id="avoiding-pitfalls" class="content-section space-y-6 bg-white p-6 rounded-lg shadow">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-sky-600 mb-4">Ошибки и Заблуждения Новичков в JTBD</h2>
+            <p class="text-stone-700 mb-6">При внедрении JTBD легко допустить ошибки. Нажмите на карточку, чтобы увидеть распространенные заблуждения и как их избежать.</p>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="flip-card h-48">
+                    <div class="flip-card-inner">
+                        <div class="flip-card-front bg-amber-100 text-amber-800"><strong>Ошибка 1:</strong> Путаница "работы" с задачами</div>
+                        <div class="flip-card-back bg-emerald-100 text-emerald-800"><strong>Решение:</strong> Помните, "работа" – это прогресс. "Слушать музыку" – действие, "расслабиться после тяжелого дня" – ближе к "работе".</div>
+                    </div>
+                </div>
+                <div class="flip-card h-48">
+                    <div class="flip-card-inner">
+                        <div class="flip-card-front bg-amber-100 text-amber-800"><strong>Ошибка 2:</strong> Фокус только на функционале</div>
+                        <div class="flip-card-back bg-emerald-100 text-emerald-800"><strong>Решение:</strong> Учитывайте эмоциональные и социальные аспекты "работы". Они часто играют решающую роль.</div>
+                    </div>
+                </div>
+                <div class="flip-card h-48">
+                    <div class="flip-card-inner">
+                        <div class="flip-card-front bg-amber-100 text-amber-800"><strong>Ошибка 3:</strong> JTBD – это одноразовое упражнение</div>
+                        <div class="flip-card-back bg-emerald-100 text-emerald-800"><strong>Решение:</strong> Понимание "работ" требует постоянного исследования и уточнения, так как контексты и ожидания меняются.</div>
+                    </div>
+                </div>
+                <div class="flip-card h-48">
+                    <div class="flip-card-inner">
+                        <div class="flip-card-front bg-amber-100 text-amber-800"><strong>Ошибка 4:</strong> Поверхностные интервью</div>
+                        <div class="flip-card-back bg-emerald-100 text-emerald-800"><strong>Решение:</strong> Задавайте вопросы "почему?", исследуйте "силы прогресса", чтобы докопаться до глубинных мотивов.</div>
+                    </div>
+                </div>
+                <div class="flip-card h-48">
+                    <div class="flip-card-inner">
+                        <div class="flip-card-front bg-amber-100 text-amber-800"><strong>Ошибка 5:</strong> Игнорирование "широкой" конкуренции</div>
+                        <div class="flip-card-back bg-emerald-100 text-emerald-800"><strong>Решение:</strong> Конкуренты – это все, что помогает клиенту выполнить "работу", включая отказ от действия или обходные пути.</div>
+                    </div>
+                </div>
+                 <div class="flip-card h-48">
+                    <div class="flip-card-inner">
+                        <div class="flip-card-front bg-amber-100 text-amber-800"><strong>Ошибка 6:</strong> Неспособность перевести инсайты в решения</div>
+                        <div class="flip-card-back bg-emerald-100 text-emerald-800"><strong>Решение:</strong> Требуется творческий подход и готовность оспаривать существующие предположения для создания инноваций.</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="conclusion" class="content-section space-y-6 bg-white p-6 rounded-lg shadow">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-sky-600 mb-4">Заключение и Ключевые Тезисы</h2>
+            <p class="text-stone-700 mb-6">Концепция Jobs to Be Done предлагает мощный объектив для понимания поведения потребителей и создания продуктов, которые действительно решают их проблемы и помогают достигать прогресса.</p>
+            <div class="bg-sky-50 p-4 rounded-md">
+                <h3 class="font-semibold text-lg text-sky-700 mb-2">Краткий пересказ:</h3>
+                <p class="text-sm text-stone-600 mb-3">JTBD смещает фокус с продукта на "работу", которую клиент пытается выполнить. Понимание контекста, мотивации и желаемого прогресса клиента (включая функциональные, эмоциональные и социальные аспекты) позволяет компаниям, таким как McDonald's или IKEA, создавать инновационные и востребованные решения. Внедрение JTBD включает проведение специальных интервью, формирование Job Stories (теперь с возможностью генерации ИИ!) и использование этих инсайтов для стратегии, дизайна и маркетинга. Важно избегать распространенных ошибок, таких как путаница "работы" с задачами или игнорирование эмоциональных аспектов.</p>
+                <h3 class="font-semibold text-lg text-sky-700 mb-2">Тезисный план:</h3>
+                <ul class="list-disc list-inside text-sm text-stone-600 space-y-1">
+                    <li><strong>Определение JTBD:</strong> Люди "нанимают" продукты для выполнения "работы" – достижения прогресса.</li>
+                    <li><strong>Происхождение:</strong> Левитт, Кристенсен, Ульвик.</li>
+                    <li><strong>Принципы:</strong> Прогресс, контекст, многогранность "работы".</li>
+                    <li><strong>Примеры:</strong> McDonald's, Intercom, IKEA.</li>
+                    <li><strong>Внедрение:</strong> JTBD-интервью, Job Stories (включая ИИ-генератор), применение в roadmap, дизайне.</li>
+                    <li><strong>Ошибки:</strong> Путаница с задачами, игнорирование эмоций, поверхностность.</li>
+                </ul>
+            </div>
+            <p class="text-stone-700 mt-6">JTBD – это не просто методика, а образ мышления, который помогает компаниям создавать истинную ценность для своих клиентов.</p>
+        </section>
+    </main>
+
+    <footer class="text-center py-8 text-sm text-stone-500">
+        <p>&copy; <span id="currentYear"></span> Интерактивное руководство по JTBD. Создано для обучения. ✨ Улучшено с помощью Gemini API.</p>
+    </footer>
+
+    <div id="alertModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close-button" id="modalCloseBtn">&times;</span>
+            <p id="modalMessageText"></p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const navLinks = document.querySelectorAll('.nav-link');
+            const contentSections = document.querySelectorAll('.content-section');
+            const principleToggles = document.querySelectorAll('.principle-toggle');
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+            const forceCircles = document.querySelectorAll('.force-circle');
+            const forceDetailsBox = document.getElementById('force-details');
+            const flipCards = document.querySelectorAll('.flip-card');
+
+            const jobStoryContextInput = document.getElementById('jobStoryContextInput');
+            const generateJobStoryButton = document.getElementById('generateJobStoryButton');
+            const jobStoryLoading = document.getElementById('jobStoryLoading');
+            const jobStoryOutputContainer = document.getElementById('jobStoryOutputContainer');
+            const jobStoryOutput = document.getElementById('jobStoryOutput');
+
+            const alertModal = document.getElementById('alertModal');
+            const modalMessageText = document.getElementById('modalMessageText');
+            const modalCloseBtn = document.getElementById('modalCloseBtn');
+
+            document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+            function showCustomAlert(message) {
+                modalMessageText.textContent = message;
+                alertModal.style.display = "block";
+            }
+
+            modalCloseBtn.onclick = function() {
+                alertModal.style.display = "none";
+            }
+
+            window.onclick = function(event) {
+                if (event.target == alertModal) {
+                    alertModal.style.display = "none";
+                }
+            }
+
+
+            function showSection(targetId) {
+                contentSections.forEach(section => {
+                    section.classList.toggle('active', section.id === targetId);
+                });
+                navLinks.forEach(link => {
+                    link.classList.toggle('active-nav', link.dataset.target === targetId);
+                });
+                window.scrollTo(0, 0);
+            }
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', function () {
+                    showSection(this.dataset.target);
+                });
+            });
+
+            principleToggles.forEach(toggle => {
+                toggle.addEventListener('click', function () {
+                    const detail = this.nextElementSibling;
+                    detail.classList.toggle('hidden');
+                });
+            });
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    const targetTab = this.dataset.tab;
+
+                    tabButtons.forEach(btn => btn.classList.remove('active', 'text-blue-600', 'border-blue-600'));
+                    tabButtons.forEach(btn => btn.classList.add('text-stone-500', 'border-transparent'));
+                    
+                    this.classList.add('active','text-blue-600', 'border-blue-600');
+                    this.classList.remove('text-stone-500', 'border-transparent');
+
+                    tabContents.forEach(content => {
+                        content.classList.toggle('active', content.id === targetTab);
+                    });
+                });
+            });
+            
+            const initialActiveTabButton = document.querySelector('.tab-button.active');
+            if(initialActiveTabButton){
+                initialActiveTabButton.classList.add('text-blue-600', 'border-blue-600');
+                initialActiveTabButton.classList.remove('text-stone-500', 'border-transparent');
+            }
+
+            const forceData = {
+                push: { title: "Недовольство текущей ситуацией (Push)", desc: "Что заставило человека искать новое решение? Какие проблемы были в старом подходе? Это 'толчок' от текущих проблем." },
+                pull: { title: "Привлекательность нового решения (Pull)", desc: "Что привлекло в новом продукте/услуге? Какие ожидания с ним связаны? Это 'притяжение' к новому, лучшему будущему." },
+                anxiety: { title: "Тревоги и опасения (Anxiety)", desc: "Какие сомнения были связаны с переходом на новое решение? Что могло пойти не так? Это барьеры и страхи перед неизвестностью." },
+                habit: { title: "Привычки и инерция (Habit/Allegiance)", desc: "Что удерживало от изменений? Насколько сильны были старые привычки или лояльность к текущему решению? Это сила статус-кво." }
+            };
+
+            forceCircles.forEach(circle => {
+                circle.addEventListener('click', function () {
+                    const forceKey = this.dataset.force;
+                    forceDetailsBox.innerHTML = `
+                        <h4 class="font-semibold text-lg mb-2">${forceData[forceKey].title}</h4>
+                        <p class="text-sm">${forceData[forceKey].desc}</p>
+                    `;
+                });
+            });
+
+            flipCards.forEach(card => {
+                card.addEventListener('click', function() {
+                    this.classList.toggle('flipped');
+                });
+            });
+
+            async function handleGenerateJobStory() {
+                const userInputContext = jobStoryContextInput.value.trim();
+                if (!userInputContext) {
+                    showCustomAlert("Пожалуйста, опишите ситуацию или контекст пользователя.");
+                    return;
+                }
+
+                jobStoryLoading.classList.remove('hidden');
+                jobStoryOutputContainer.classList.add('hidden');
+                jobStoryOutput.textContent = '';
+
+                const prompt = `Пользователь описывает ситуацию: "${userInputContext}".
+Сформулируй Job Story на основе этой ситуации.
+Job Story должна строго следовать формату: "Когда [ситуация/контекст, основанный на вводе пользователя], я хочу [мотивация/цель], чтобы я мог [желаемый результат/прогресс]."
+Не добавляй никакого другого текста или объяснений, только саму Job Story.
+
+Пример, если пользователь ввел "Я еду на работу в переполненном метро и чувствую стресс.":
+Когда я еду на работу в переполненном метро и чувствую стресс, я хочу погрузиться в свой мир с помощью музыки, чтобы я мог расслабиться и отвлечься от суеты.
+
+Сгенерируй только одну Job Story.`;
+                
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = { contents: chatHistory };
+                const apiKey = ""; 
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error ? errorData.error.message : `Ошибка API: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        const generatedText = result.candidates[0].content.parts[0].text;
+                        jobStoryOutput.textContent = generatedText;
+                        jobStoryOutputContainer.classList.remove('hidden');
+                    } else {
+                        throw new Error("Не удалось получить корректный ответ от Gemini API.");
+                    }
+
+                } catch (error) {
+                    console.error("Ошибка при вызове Gemini API:", error);
+                    jobStoryOutput.textContent = `Произошла ошибка при генерации Job Story: ${error.message}`;
+                    jobStoryOutputContainer.classList.remove('hidden'); // Show container to display error
+                } finally {
+                    jobStoryLoading.classList.add('hidden');
+                }
+            }
+
+            if (generateJobStoryButton) {
+                generateJobStoryButton.addEventListener('click', handleGenerateJobStory);
+            }
+
+            if (navLinks.length > 0) {
+                showSection(navLinks[0].dataset.target);
+            }
+        });
+    </script>
+
+</body>
+</html>
